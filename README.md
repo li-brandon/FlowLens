@@ -6,6 +6,8 @@ A local-only cash-flow visualizer. Load a transaction CSV and see where your mon
 - **Metrics header**: income, expenses, savings and savings rate for the selected date range.
 - **Date range**: presets (Last Week to All Time) or a custom start/end date.
 - **Category drill-down**: top 10 merchants, totals and the full transaction list for any category.
+- **Projections**: projected annual spend per category, and per-category targets (% of income)
+  marked **On pace** or **Over**. Targets are saved locally and survive a restart.
 
 Your data never leaves your machine. The CSV is held in memory by the local Streamlit
 process, the server binds to `localhost` only, and Streamlit usage stats are turned off
@@ -54,6 +56,16 @@ amount are listed in a warning instead of being silently dropped.
 - **Expenses**: all other rows, except transfers and rows marked `excluded`. Refunds (negative amounts) reduce their category's total.
 - **Transfers**: any type containing `transfer` is ignored for income and expenses.
 - **Savings** = income - expenses. **Savings rate** = savings / income × 100 (shown as n/a when income is 0).
+
+### Projection rules
+
+- The selected date range is treated as typical. **Months in range** = inclusive days / 30.44.
+- **Monthly average** = a category's net spend in range / months in range. **Projected annual** = monthly average × 12.
+- **Annual income** is the range's income annualized the same way. Toggle **Override annual income** to enter your own.
+- **Targets** are a percent of annual income. A category is **On pace** when its projected annual spend
+  is at or below the target amount, otherwise **Over**. With no income, targets show **No income**.
+- Targets are saved to `~/.flowlens/targets.json` (outside the repo). Set `FLOWLENS_TARGETS_PATH`
+  to use another file. Targets for categories not in the current range are kept.
 
 ## Real data safety
 
