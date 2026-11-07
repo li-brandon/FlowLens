@@ -82,3 +82,8 @@ def test_blank_excluded_means_not_excluded():
 def test_extra_columns_are_kept():
     result = load("date,name,amount,type,category,account,excluded,tags\n2026-01-01,x,1,regular,A,B,false,trip\n")
     assert result.transactions.iloc[0]["tags"] == "trip"
+
+
+def test_blank_income_category_is_kept_apart_from_spending_other():
+    result = load(HEADER + "2026-01-01,Pay,-5,income,,Card,true\n2026-01-02,Odd,5,regular,,Card,false\n")
+    assert list(result.transactions["category"]) == ["Other income", "Other"]

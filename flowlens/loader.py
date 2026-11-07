@@ -19,6 +19,10 @@ REQUIRED_COLUMNS: tuple[str, ...] = (
 
 # Blank categories are grouped here so no spending is hidden.
 OTHER_CATEGORY = "Other"
+OTHER_INCOME = "Other income"
+
+# Optional column naming each category's group (Copilot Money calls it "parent category").
+GROUP_COLUMNS: tuple[str, ...] = ("parent category", "group")
 
 _TRUE = {"true", "t", "yes", "y", "1"}
 _FALSE = {"false", "f", "no", "n", "0", ""}
@@ -82,7 +86,18 @@ def load_transactions(source: str | IO) -> LoadResult:
     good["date"] = dates[~bad_mask].dt.normalize()
     good["amount"] = amounts[~bad_mask].astype(float)
     good["type"] = good["type"].str.lower()
-    good["category"] = good["category"].where(good["category"] != "", OTHER_CATEGORY)
+    blank = good["category"] == ""
+    good.loc[blank, "category"] = OTHER_CATEGORY
+    # Copilot leaves income uncategorized; keep it apart from the spending "Other".
+    good.loc[blank & (good["type"] == "income"), "category"] = OTHER_INCOME
+    # "group" is "" for every row when the file has no group column. A category with
+    # a blank group is its own group.
+    group_col = next((c for c in GROUP_COLUMNS if c in good.columns), None)
+    if group_col is None:
+        good["group"] = ""
+    else:
+        groups = good[group_col].astype(str).str.strip()
+        good["group"] = groups.where(groups != "", good["category"])
     good["excluded"] = excluded_text[~bad_mask].isin(_TRUE)
     good = good.reset_index(drop=True)
 
