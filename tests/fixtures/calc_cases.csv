@@ -1,0 +1,9 @@
+date,name,amount,type,category,account,excluded
+2026-03-01,Example Payroll,-4000.00,income,Paycheck,Test Checking,false
+2026-03-02,Example Bonus,-1000.00,income,Paycheck,Test Checking,true
+2026-03-03,Test Grocer,300.00,regular,Groceries,Test Card,false
+2026-03-04,Test Grocer,-50.00,regular,Groceries,Test Card,false
+2026-03-05,Test Landlord,1500.00,regular,Rent,Test Checking,false
+2026-03-06,Mystery Shop,20.00,regular,,Test Card,false
+2026-03-07,Work Dinner,999.00,regular,Restaurants,Test Card,true
+2026-03-08,To Savings,700.00,internal transfer,Transfer,Test Checking,false
