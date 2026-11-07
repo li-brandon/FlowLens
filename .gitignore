@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+
+# Secrets / env
+.env
+.env.*
+*.pem
+*.key
+.streamlit/secrets.toml
+
+# Real financial exports: only fake data under samples/ may be committed
+*.csv
+*.xlsx
+*.xls
+!samples/*.csv
+!tests/fixtures/*.csv
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

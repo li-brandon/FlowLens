@@ -1,0 +1,8 @@
+[browser]
+# Keep everything local: no usage stats are sent to Streamlit.
+gatherUsageStats = false
+
+[server]
+# Bind to localhost only.
+address = "localhost"
+maxUploadSize = 50
