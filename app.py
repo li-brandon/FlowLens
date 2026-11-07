@@ -16,7 +16,16 @@ from flowlens.calc import category_totals, summarize
 from flowlens.dates import CUSTOM, PRESETS, filter_range, preset_range
 from flowlens.drilldown import category_detail
 from flowlens.loader import CsvFormatError, LoadResult, load_transactions
+from flowlens.projections import (
+    NO_INCOME,
+    ON_PACE,
+    OVER,
+    detected_annual_income,
+    months_in_range,
+    project_categories,
+)
 from flowlens.sankey import build_sankey, sankey_figure
+from flowlens.targets import default_path, load_targets, merge_targets, save_targets
 
 SAMPLE_PATH = Path(__file__).parent / "samples" / "sample_transactions.csv"
 
@@ -94,7 +103,7 @@ c2.metric("Expenses", money(s.expenses))
 c3.metric("Savings", money(s.savings))
 c4.metric("Savings rate", "n/a" if s.savings_rate is None else f"{s.savings_rate:.1f}%")
 
-tab_flow, tab_drill = st.tabs(["Flow", "Category drill-down"])
+tab_flow, tab_drill, tab_proj = st.tabs(["Flow", "Category drill-down", "Projections"])
 
 # --- Sankey -----------------------------------------------------------------
 
@@ -154,3 +163,104 @@ with tab_drill:
                 "account": "Account",
             },
         )
+
+# --- Year-end projections and targets ---------------------------------------
+
+with tab_proj:
+    months = months_in_range(start, end)
+    detected = detected_annual_income(view, start, end)
+    st.caption(
+        f"Projections assume the next 12 months look like the selected range "
+        f"({months:.1f} months). Pick a longer range for steadier numbers."
+    )
+    if months < 1:
+        st.warning("The selected range is shorter than a month, so projections may swing a lot.")
+
+    i1, i2 = st.columns([1, 2])
+    i1.metric("Detected annual income", money(detected))
+    with i2:
+        override = st.toggle("Override annual income")
+        annual_income = (
+            st.number_input(
+                "Annual income",
+                min_value=0.0,
+                value=round(detected, 2),
+                step=1000.0,
+                format="%.2f",
+            )
+            if override
+            else detected
+        )
+
+    saved = load_targets()
+    proj = project_categories(view, start, end, annual_income, saved)
+    if proj.empty:
+        st.info("No spending in this date range.")
+    else:
+        if annual_income <= 0 and saved:
+            st.info("No income in this range, so targets can't be checked. Override annual income to compare.")
+
+        on_pace, over = (proj["status"] == ON_PACE).sum(), (proj["status"] == OVER).sum()
+        if on_pace or over:
+            st.markdown(f"**{on_pace}** on pace · **{over}** over target")
+
+        def _status(v: str) -> str:
+            if v == OVER:
+                return "color: #c0392b; font-weight: 600"
+            if v == ON_PACE:
+                return "color: #1e8449; font-weight: 600"
+            return "color: gray" if v == NO_INCOME else ""
+
+        st.dataframe(
+            proj.style.map(_status, subset=["status"]),
+            hide_index=True,
+            width="stretch",
+            column_config={
+                "category": "Category",
+                "spent": st.column_config.NumberColumn("Spent in range", format="dollar"),
+                "monthly_avg": st.column_config.NumberColumn("Monthly avg", format="dollar"),
+                "projected_annual": st.column_config.NumberColumn("Projected annual", format="dollar"),
+                "target_pct": st.column_config.NumberColumn("Target % of income", format="%.1f%%"),
+                "target_amount": st.column_config.NumberColumn("Target amount", format="dollar"),
+                "status": "Status",
+            },
+        )
+
+        with st.form("targets"):
+            st.subheader("Category targets")
+            st.caption(
+                "Set each target as a percent of annual income. Clear a cell to remove it. "
+                f"Saved on this computer in `{default_path()}`."
+            )
+            editor = st.data_editor(
+                proj[["category", "target_pct"]],
+                hide_index=True,
+                width="stretch",
+                disabled=["category"],
+                column_config={
+                    "category": "Category",
+                    "target_pct": st.column_config.NumberColumn(
+                        "Target % of income", min_value=0.0, max_value=100.0, step=0.5, format="%.1f"
+                    ),
+                },
+                # Edits are stored by row position, so start fresh when rows change or after a save.
+                key=f"targets-{st.session_state.get('targets_saved', 0)}-{'|'.join(proj['category'])}",
+            )
+            if st.form_submit_button("Save targets"):
+                edited = {
+                    row.category: None if pd.isna(row.target_pct) else float(row.target_pct)
+                    for row in editor.itertuples(index=False)
+                }
+                try:
+                    save_targets(merge_targets(saved, edited))
+                except OSError as exc:
+                    st.error(f"Couldn't save targets: {exc}")
+                else:
+                    st.session_state["targets_saved"] = st.session_state.get("targets_saved", 0) + 1
+                    st.rerun()
+
+        other = sorted(set(saved) - set(proj["category"]))
+        if other:
+            st.caption("Saved targets for categories not in this range: " + ", ".join(
+                f"{c} ({saved[c]:g}%)" for c in other
+            ))
