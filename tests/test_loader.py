@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from flowlens.loader import UNCATEGORIZED, CsvFormatError, load_transactions
+from flowlens.loader import CsvFormatError, load_transactions
 
 HEADER = "date,name,amount,type,category,account,excluded\n"
 SAMPLE = Path(__file__).resolve().parent.parent / "samples" / "sample_transactions.csv"
@@ -69,9 +69,9 @@ def test_bad_rows_are_reported_not_dropped_silently():
     assert bad[5] == "unreadable date; unreadable amount; unreadable excluded flag"
 
 
-def test_blank_category_becomes_uncategorized():
+def test_blank_category_becomes_other():
     result = load(HEADER + "2026-01-01,Mystery,5,regular,,Card,false\n")
-    assert result.transactions.iloc[0]["category"] == UNCATEGORIZED
+    assert result.transactions.iloc[0]["category"] == "Other"
 
 
 def test_blank_excluded_means_not_excluded():

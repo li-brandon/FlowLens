@@ -17,7 +17,8 @@ REQUIRED_COLUMNS: tuple[str, ...] = (
     "excluded",
 )
 
-UNCATEGORIZED = "Uncategorized"
+# Blank categories are grouped here so no spending is hidden.
+OTHER_CATEGORY = "Other"
 
 _TRUE = {"true", "t", "yes", "y", "1"}
 _FALSE = {"false", "f", "no", "n", "0", ""}
@@ -81,7 +82,7 @@ def load_transactions(source: str | IO) -> LoadResult:
     good["date"] = dates[~bad_mask].dt.normalize()
     good["amount"] = amounts[~bad_mask].astype(float)
     good["type"] = good["type"].str.lower()
-    good["category"] = good["category"].where(good["category"] != "", UNCATEGORIZED)
+    good["category"] = good["category"].where(good["category"] != "", OTHER_CATEGORY)
     good["excluded"] = excluded_text[~bad_mask].isin(_TRUE)
     good = good.reset_index(drop=True)
 

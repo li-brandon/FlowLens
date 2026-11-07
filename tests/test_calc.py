@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from flowlens.calc import category_totals, summarize
-from flowlens.loader import UNCATEGORIZED, load_transactions
+from flowlens.loader import load_transactions
 
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "calc_cases.csv"
 HEADER = "date,name,amount,type,category,account,excluded\n"
@@ -16,7 +16,7 @@ def frame(*lines: str):
 
 def test_fixture_totals():
     # Fixture: income 5000 (4000 + 1000 excluded-but-counted)
-    # Groceries 300 - 50 refund = 250, Rent 1500, Uncategorized 20
+    # Groceries 300 - 50 refund = 250, Rent 1500, Other 20
     # Ignored: 999 excluded dinner, 700 transfer.
     s = summarize(load_transactions(FIXTURE).transactions)
     assert s.income == pytest.approx(5000)
@@ -60,9 +60,9 @@ def test_transfers_excluded_from_expenses():
     assert "Transfer" not in category_totals(df)
 
 
-def test_empty_category_counted_as_uncategorized():
+def test_empty_category_counted_as_other():
     df = frame("2026-01-01,Mystery,42,regular,,A,false")
-    assert category_totals(df)[UNCATEGORIZED] == pytest.approx(42)
+    assert category_totals(df)["Other"] == pytest.approx(42)
 
 
 def test_zero_income_has_no_savings_rate():

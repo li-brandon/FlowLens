@@ -41,7 +41,7 @@ FlowLens reads the [Copilot Money](https://copilot.money) export format. Require
 | `name` | Merchant / description |
 | `amount` | Positive = money out, negative = money in (refunds, income) |
 | `type` | `regular`, `income` or `internal transfer` |
-| `category` | Spending category (blank becomes **Uncategorized**) |
+| `category` | Spending category (blank becomes **Other**, so no spending is hidden) |
 | `account` | Account name |
 | `excluded` | `true` / `false` |
 
